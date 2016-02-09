@@ -57,10 +57,10 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   nh_pid_alt.setParam("d", nh_pid_alt.param("d", 0.0));
   nh_pid_alt.setParam("i_clamp", nh_pid_alt.param("i_clamp", 0.02));
 
-  pid_vx.init(nh_pid_vx);
-  pid_vy.init(nh_pid_vy);
-  pid_yaw.init(nh_pid_yaw);
-  pid_alt.init(nh_pid_alt);
+  pid_vx->init(nh_pid_vx);
+  pid_vy->init(nh_pid_vy);
+  pid_yaw->init(nh_pid_yaw);
+  pid_alt->init(nh_pid_alt);
 
   velx_model = boost::make_shared<bebop_vel_ctrl::BebopVelocityTiltModel>(Cx, GRAV_CST);
   vely_model = boost::make_shared<bebop_vel_ctrl::BebopVelocityTiltModel>(Cy, -GRAV_CST);
@@ -156,17 +156,17 @@ void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &tw
 
   // PID Control Loop
   const ros::Duration& dt = t_now - pid_last_time;
-  const double pitch_ref = pid_vx.computeCommand(setpoint.linear.x - velx_model->GetVel(), dt);
-  const double roll_ref  = pid_vy.computeCommand(setpoint.linear.y - vely_model->GetVel(), dt);
+  const double pitch_ref = pid_vx->computeCommand(setpoint.linear.x - velx_model->GetVel(), dt);
+  const double roll_ref  = pid_vy->computeCommand(setpoint.linear.y - vely_model->GetVel(), dt);
 
   // If abs yaw ctrl is set, setpoint.angular.z is an angle
   const double vyaw_ref = (abs_yaw_ctrl) ?
-        pid_yaw.computeCommand(angles::normalize_angle(setpoint.angular.z - beb_yaw_rad), dt) :
+        pid_yaw->computeCommand(angles::normalize_angle(setpoint.angular.z - beb_yaw_rad), dt) :
         setpoint.angular.z;
 
   // If abs alt ctrl is set, setpoint.linear.z is an altitude
   const double vz_ref = (abs_alt_ctrl) ?
-        pid_alt.computeCommand(setpoint.linear.z - beb_alt_m, dt) :
+        pid_alt->computeCommand(setpoint.linear.z - beb_alt_m, dt) :
         setpoint.linear.z;
 
   // Convert PID output  into normalized cmd_vel (-1 -> 1)

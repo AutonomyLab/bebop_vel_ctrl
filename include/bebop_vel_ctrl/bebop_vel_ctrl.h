@@ -121,10 +121,10 @@ protected:
 
   // PID Controllers
   ros::Time pid_last_time;
-  control_toolbox::Pid pid_vx;
-  control_toolbox::Pid pid_vy;
-  control_toolbox::Pid pid_yaw;
-  control_toolbox::Pid pid_alt;
+  boost::shared_ptr<control_toolbox::Pid> pid_vx;
+  boost::shared_ptr<control_toolbox::Pid> pid_vy;
+  boost::shared_ptr<control_toolbox::Pid> pid_yaw;
+  boost::shared_ptr<control_toolbox::Pid> pid_alt;
 
   // Internal
   double beb_vx_pred_m;
