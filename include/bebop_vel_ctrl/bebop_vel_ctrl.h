@@ -64,15 +64,15 @@ protected:
   ros::NodeHandle nh_priv_;
 
   // This is required for proper initialization of PID dynamic reconfigure
-  ros::NodeHandle nh_pid_vx;
-  ros::NodeHandle nh_pid_vy;
-  ros::NodeHandle nh_pid_yaw;
-  ros::NodeHandle nh_pid_alt;
+  ros::NodeHandle nh_pid_vx_;
+  ros::NodeHandle nh_pid_vy_;
+  ros::NodeHandle nh_pid_yaw_;
+  ros::NodeHandle nh_pid_alt_;
 
-  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateAltitudeChanged> bebop_alt_sub;
-  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateAttitudeChanged> bebop_att_sub;
-  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateSpeedChanged> bebop_speed_sub;
-  message_filters::Synchronizer<BebopSyncPolicy_t> bebop_sync;
+  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateAltitudeChanged> sub_bebop_alt_;
+  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateAttitudeChanged> sub_bebop_att_;
+  message_filters::Subscriber<bebop_msgs::Ardrone3PilotingStateSpeedChanged> sub_bebop_speed_;
+  message_filters::Synchronizer<BebopSyncPolicy_t> subsync_bebop_;
 
   ros::Subscriber sub_setpoint_cmd_vel_;
   ros::Publisher pub_ctrl_cmd_vel_;
@@ -80,8 +80,8 @@ protected:
   geometry_msgs::Twist ctrl_twist_;
 
   // Bebop dynamic models for pitch->vx and roll->vy
-  boost::shared_ptr<BebopVelocityTiltModel> velx_model; // pitch
-  boost::shared_ptr<BebopVelocityTiltModel> vely_model; // roll
+  boost::shared_ptr<BebopVelocityTiltModel> model_velx_; // pitch
+  boost::shared_ptr<BebopVelocityTiltModel> model_vely_; // roll
 
   // Bebop internal params (driver reads/sets them)
   bool beb_param_recv;
@@ -94,41 +94,41 @@ protected:
    * degree of freedom is conrolled in positional space (not velocity space).
    * Input setpoint is treated as an absolute value
    * */
-  bool abs_yaw_ctrl;
-  bool abs_alt_ctrl;
+  bool param_abs_yaw_ctrl_;
+  bool param_abs_alt_ctrl_;
 
-  double time_delay_s;
-  double Cx;
-  double Cy;
-  double update_freq;
-  double max_linear_vel;  // m/s
-  double max_angular_vel; // rad/s
-  double max_vertical_vel; // m/s
+  double param_time_delay_;
+  double param_model_cx_;
+  double param_model_cy_;
+  double param_update_freq_;
+  double param_max_linear_vel_;  // m/s
+  double param_max_angular_vel_; // rad/s
+  double param_max_vertical_vel_; // m/s
 
   // Bebop Attitude States
-  ros::Time bebop_recv_time;
-  double beb_roll_rad;
-  double beb_pitch_rad;
-  double beb_yaw_rad;
-  double beb_yaw_ref_rad;
-  double beb_alt_m;
+  ros::Time bebop_recv_time_;
+  double beb_roll_rad_;
+  double beb_pitch_rad_;
+  double beb_yaw_rad_;
+  double beb_yaw_ref_rad_;
+  double beb_alt_m_;
 
   // Bebop Velocities
-  double beb_vx_m;
-  double beb_vy_m;
-  double beb_vz_m;
-  double beb_vyaw_rad;
+  double beb_vx_m_;
+  double beb_vy_m_;
+  double beb_vz_m_;
+  double beb_vyaw_rad_;
 
   // PID Controllers
-  ros::Time pid_last_time;
-  boost::shared_ptr<control_toolbox::Pid> pid_vx;
-  boost::shared_ptr<control_toolbox::Pid> pid_vy;
-  boost::shared_ptr<control_toolbox::Pid> pid_yaw;
-  boost::shared_ptr<control_toolbox::Pid> pid_alt;
+  ros::Time pid_last_time_;
+  boost::shared_ptr<control_toolbox::Pid> pid_vx_;
+  boost::shared_ptr<control_toolbox::Pid> pid_vy_;
+  boost::shared_ptr<control_toolbox::Pid> pid_yaw_;
+  boost::shared_ptr<control_toolbox::Pid> pid_alt_;
 
   // Internal
-  double beb_vx_pred_m;
-  double beb_vy_pred_m;
+  double beb_vx_pred_m_;
+  double beb_vy_pred_m_;
 
   void BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAltitudeChangedConstPtr& alt_ptr,
                          const bebop_msgs::Ardrone3PilotingStateAttitudeChangedConstPtr& att_ptr,
