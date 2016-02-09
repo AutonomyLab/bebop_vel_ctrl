@@ -2,8 +2,12 @@
 <launch>
   <arg name="config_file" default="$(find bebop_vel_ctrl)/config/bebop_vel_ctrl.yaml" />
   <arg name="output" default="screen" />
+  <arg name="input_topic" default="setpoint/cmd_vel" />
+  <arg name="output_topic" default="cmd_vel" />
 
   <node name="bebop_vel_ctrl_node" type="bebop_vel_ctrl_node" pkg="bebop_vel_ctrl" output="$(arg output)" >
+    <remap from="setpoint/cmd_vel" to="$(arg input_topic)" />
+    <remap from="cmd_vel" to="$(arg output_topic)" />
     <rosparam command="load" file="$(arg config_file)" />
   </node>
 </launch>
