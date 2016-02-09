@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="config_file" default="$(find bebop_vel_ctrl)/config/bebop_vel_ctrl.yaml" />
+  <arg name="output" default="screen" />
+
+  <node name="bebop_vel_ctrl_node" type="bebop_vel_ctrl_node" pkg="bebop_vel_ctrl" output="$(arg output)" >
+    <rosparam command="load" file="$(arg config_file)" />
+  </node>
+</launch>

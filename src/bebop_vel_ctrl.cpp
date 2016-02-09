@@ -231,17 +231,20 @@ void BebopVelCtrl::Spin()
   {
     try
     {
+      bool do_reset = false;
       if ((ros::Time::now() - bebop_recv_time_).toSec() > 1.0)
       {
         ROS_WARN("[VCTL] Bebop state feedback is older than 1 second! Resetting.");
-        Reset();
+        do_reset = true;
       }
 
       if ((ros::Time::now() - pid_last_time_).toSec() > (5.0 / param_update_freq_))
       {
         ROS_WARN("[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
-        Reset();
+        do_reset = true;
       }
+
+      if (do_reset) Reset();
 
       ros::spinOnce();
       if (!loop_rate.sleep())

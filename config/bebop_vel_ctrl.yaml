@@ -1,0 +1,26 @@
+abs_yaw_ctrl: false
+abs_alt_ctrl: false
+model_delay_s: 0.262137
+model_cx: -0.576335778073963
+model_cy: -0.584975281133000
+update_freq: 30.0
+pid_forward:
+  p: 0.15
+  i: 0.4
+  d: 0.0
+  i_clamp: 0.02
+pid_lateral:
+  p: 0.15
+  i: 0.4
+  d: 0.0
+  i_clamp: 0.02
+pid_yaw:
+  p: 0.5
+  i: 0
+  d: 0
+  i_clamp: 0
+pid_alt:
+  p: 0.5
+  i: 0
+  d: 0
+  i_clamp: 0
