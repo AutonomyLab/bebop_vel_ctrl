@@ -8,6 +8,9 @@ int main(int argc, char* argv[])
 
   ros::NodeHandle nh;
 
-  ros::spin();
+  ROS_INFO("Starting bebop_vel_ctrl_node ...");
+  bebop_vel_ctrl::BebopVelCtrl vel_ctrl(nh);
+
+  vel_ctrl.Spin();
   return 0;
 }

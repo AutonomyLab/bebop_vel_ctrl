@@ -23,6 +23,10 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
     bebop_sync(BebopSyncPolicy_t(10), bebop_alt_sub, bebop_att_sub, bebop_speed_sub),
     beb_param_recv(false),
     bebop_recv_time(0),
+    pid_vx(new control_toolbox::Pid()),
+    pid_vy(new control_toolbox::Pid()),
+    pid_yaw(new control_toolbox::Pid()),
+    pid_alt(new control_toolbox::Pid()),
     beb_vx_pred_m(0.0),
     beb_vy_pred_m(0.0)
 {
@@ -56,6 +60,8 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   nh_pid_alt.setParam("i", nh_pid_alt.param("i", 0.0));
   nh_pid_alt.setParam("d", nh_pid_alt.param("d", 0.0));
   nh_pid_alt.setParam("i_clamp", nh_pid_alt.param("i_clamp", 0.02));
+
+  ROS_ASSERT(pid_vx && pid_vy && pid_yaw && pid_alt);
 
   pid_vx->init(nh_pid_vx);
   pid_vy->init(nh_pid_vy);
