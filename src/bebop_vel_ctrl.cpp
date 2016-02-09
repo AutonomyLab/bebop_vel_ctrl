@@ -143,9 +143,15 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
 
 void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &twist_ptr_)
 {
+  setpoint_cmd_vel = *twist_ptr_;
+}
+
+// tracks the setpoint
+void BebopVelCtrl::Update()
+{
   if (!beb_param_recv)
   {
-    ROS_WARN("[VCTL] Bebop params are not set!");
+    ROS_WARN_THROTTLE(1, "[VCTL] Bebop params are not set!");
     return;
   }
 
@@ -154,26 +160,25 @@ void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &tw
   if ((t_now - bebop_recv_time_).toSec() > 1.0) return;
 
   // CLAMP Input Setpoints
-  geometry_msgs::Twist setpoint = *twist_ptr_;
-  CLAMP(setpoint.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
-  CLAMP(setpoint.linear.y, -param_max_linear_vel_, param_max_linear_vel_);
-  CLAMP(setpoint.linear.z, -param_max_vertical_vel_, param_max_vertical_vel_);
-  CLAMP(setpoint.angular.z, -param_max_angular_vel_, param_max_angular_vel_);
+  CLAMP(setpoint_cmd_vel.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
+  CLAMP(setpoint_cmd_vel.linear.y, -param_max_linear_vel_, param_max_linear_vel_);
+  CLAMP(setpoint_cmd_vel.linear.z, -param_max_vertical_vel_, param_max_vertical_vel_);
+  CLAMP(setpoint_cmd_vel.angular.z, -param_max_angular_vel_, param_max_angular_vel_);
 
   // PID Control Loop
   const ros::Duration& dt = t_now - pid_last_time_;
-  const double pitch_ref = pid_vx_->computeCommand(setpoint.linear.x - model_velx_->GetVel(), dt);
-  const double roll_ref  = pid_vy_->computeCommand(setpoint.linear.y - model_vely_->GetVel(), dt);
+  const double pitch_ref = pid_vx_->computeCommand(setpoint_cmd_vel.linear.x - model_velx_->GetVel(), dt);
+  const double roll_ref  = pid_vy_->computeCommand(setpoint_cmd_vel.linear.y - model_vely_->GetVel(), dt);
 
   // If abs yaw ctrl is set, setpoint.angular.z is an angle
   const double vyaw_ref = (param_abs_yaw_ctrl_) ?
-        pid_yaw_->computeCommand(angles::normalize_angle(setpoint.angular.z - beb_yaw_rad_), dt) :
-        setpoint.angular.z;
+        pid_yaw_->computeCommand(angles::normalize_angle(setpoint_cmd_vel.angular.z - beb_yaw_rad_), dt) :
+        setpoint_cmd_vel.angular.z;
 
   // If abs alt ctrl is set, setpoint.linear.z is an altitude
   const double vz_ref = (param_abs_alt_ctrl_) ?
-        pid_alt_->computeCommand(setpoint.linear.z - beb_alt_m_, dt) :
-        setpoint.linear.z;
+        pid_alt_->computeCommand(setpoint_cmd_vel.linear.z - beb_alt_m_, dt) :
+        setpoint_cmd_vel.linear.z;
 
   // Convert PID output  into normalized cmd_vel (-1 -> 1)
   util::ResetCmdVel(ctrl_twist_);
@@ -214,6 +219,7 @@ void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &tw
 void BebopVelCtrl::Reset()
 {
   util::ResetCmdVel(ctrl_twist_);
+  util::ResetCmdVel(setpoint_cmd_vel);
   pub_ctrl_cmd_vel_.publish(ctrl_twist_);
 }
 
@@ -234,17 +240,20 @@ void BebopVelCtrl::Spin()
       bool do_reset = false;
       if ((ros::Time::now() - bebop_recv_time_).toSec() > 1.0)
       {
-        ROS_WARN("[VCTL] Bebop state feedback is older than 1 second! Resetting.");
+        ROS_WARN_THROTTLE(1, "[VCTL] Bebop state feedback is older than 1 second! Resetting.");
         do_reset = true;
       }
 
       if ((ros::Time::now() - pid_last_time_).toSec() > (5.0 / param_update_freq_))
       {
-        ROS_WARN("[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
+        ROS_WARN_THROTTLE(1, "[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
         do_reset = true;
       }
 
-      if (do_reset) Reset();
+      if (do_reset)
+        Reset();
+      else
+        Update();
 
       ros::spinOnce();
       if (!loop_rate.sleep())

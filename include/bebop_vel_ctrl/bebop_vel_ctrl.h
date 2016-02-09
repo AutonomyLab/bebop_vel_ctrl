@@ -50,7 +50,7 @@ bool GetParam(const ros::NodeHandle& nh, const::std::string& key, T& val, const 
   ROS_INFO_STREAM("[VCTL] Param " << key << " : " << val);
 }
 
-}
+}  // namespace util
 
 typedef message_filters::sync_policies::ApproximateTime<
     bebop_msgs::Ardrone3PilotingStateAltitudeChanged,
@@ -77,6 +77,7 @@ protected:
   ros::Subscriber sub_setpoint_cmd_vel_;
   ros::Publisher pub_ctrl_cmd_vel_;
 
+  geometry_msgs::Twist setpoint_cmd_vel;
   geometry_msgs::Twist ctrl_twist_;
 
   // Bebop dynamic models for pitch->vx and roll->vy
@@ -136,6 +137,8 @@ protected:
 
   // PID control happens here
   void SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr& twist_ptr_);
+
+  void Update();
 
 public:
   BebopVelCtrl(ros::NodeHandle& nh);
