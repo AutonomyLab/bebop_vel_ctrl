@@ -32,7 +32,7 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
     beb_vy_pred_m_(0.0)
 {
   util::GetParam(nh_priv_, "abs_yaw_ctrl", param_abs_yaw_ctrl_, false);
-  util::GetParam(nh_priv_, "abs_alt_ctrl", param_abs_yaw_ctrl_, false);
+  util::GetParam(nh_priv_, "abs_alt_ctrl", param_abs_alt_ctrl_, false);
 
   util::GetParam(nh_priv_, "model_delay_s", param_time_delay_, 0.262137);
   util::GetParam(nh_priv_, "model_cx", param_model_cx_, -0.576335778073963);
