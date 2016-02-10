@@ -108,7 +108,7 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   beb_pitch_rad_ = -att_ptr->pitch;
   beb_yaw_rad_ = -att_ptr->yaw;
   beb_alt_m_ = alt_ptr->altitude;
-  ROS_INFO_STREAM("[VCTL] Current Bebop State: RPY & ALT: "
+  ROS_DEBUG_STREAM("[VCTL] Current Bebop State: RPY & ALT: "
                   << angles::to_degrees(beb_roll_rad_) << " "
                   << angles::to_degrees(beb_pitch_rad_) << " "
                   << angles::to_degrees(beb_yaw_rad_) << " "
@@ -123,7 +123,7 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   beb_vx_m_ = cos(beb_yaw_rad_) * vx_enu + sin(beb_yaw_rad_) * vy_enu;
   beb_vy_m_ = -sin(beb_yaw_rad_) * vx_enu + cos(beb_yaw_rad_) * vy_enu;
 
-  ROS_INFO_STREAM("[VCTL] Current Bebop Velcoities: XYZ: "
+  ROS_DEBUG_STREAM("[VCTL] Current Bebop Velcoities: XYZ: "
                   << beb_vx_m_ << " "
                   << beb_vy_m_ << " "
                   << beb_vz_m_ << " ");
@@ -133,9 +133,9 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   model_velx_->Simulate(param_time_delay_, 0.05, beb_vx_m_, beb_pitch_rad_);
   model_vely_->Simulate(param_time_delay_, 0.05, beb_vy_m_, beb_roll_rad_);
 
-  ROS_INFO_STREAM("[VCTL] Simulated Bebop Velocities: XY: "
+  ROS_DEBUG_STREAM("[VCTL] Simulated Bebop Velocities: XY: "
                   << model_velx_->GetVel() << " " << model_vely_->GetVel());
-  ROS_WARN_STREAM("[VCTL] Last predicted bebop vels: XY:"
+  ROS_DEBUG_STREAM("[VCTL] Last predicted bebop vels: XY:"
                   << beb_vx_pred_m_ << " " << beb_vy_pred_m_);
 
   beb_vx_pred_m_ = beb_vx_m_;
@@ -242,12 +242,12 @@ void BebopVelCtrl::Spin()
       bool do_reset = false;
       if ((ros::Time::now() - bebop_recv_time_).toSec() > 1.0)
       {
-        ROS_WARN_THROTTLE(1, "[VCTL] Bebop state feedback is older than 1 second! Resetting.");
+        ROS_WARN_THROTTLE(10.0, "[VCTL] Bebop state feedback is older than 1 second! Resetting.");
         do_reset = true;
       }
       else if ((ros::Time::now() - setpoint_recv_time_).toSec() > (5.0 / param_update_freq_))
       {
-        ROS_WARN_THROTTLE(1, "[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
+        ROS_WARN_THROTTLE(10.0, "[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
         do_reset = true;
       }
 
