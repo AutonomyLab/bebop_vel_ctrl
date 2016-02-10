@@ -23,6 +23,7 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
     subsync_bebop_(BebopSyncPolicy_t(10), sub_bebop_alt_, sub_bebop_att_, sub_bebop_speed_),
     beb_param_recv(false),
     bebop_recv_time_(0),
+    setpoint_recv_time_(0),
     pid_vx_(new control_toolbox::Pid()),
     pid_vy_(new control_toolbox::Pid()),
     pid_yaw_(new control_toolbox::Pid()),
@@ -107,7 +108,7 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   beb_pitch_rad_ = -att_ptr->pitch;
   beb_yaw_rad_ = -att_ptr->yaw;
   beb_alt_m_ = alt_ptr->altitude;
-  ROS_INFO_STREAM("Current Bebop State: RPY & ALT: "
+  ROS_INFO_STREAM("[VCTL] Current Bebop State: RPY & ALT: "
                   << angles::to_degrees(beb_roll_rad_) << " "
                   << angles::to_degrees(beb_pitch_rad_) << " "
                   << angles::to_degrees(beb_yaw_rad_) << " "
@@ -122,7 +123,7 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   beb_vx_m_ = cos(beb_yaw_rad_) * vx_enu + sin(beb_yaw_rad_) * vy_enu;
   beb_vy_m_ = -sin(beb_yaw_rad_) * vx_enu + cos(beb_yaw_rad_) * vy_enu;
 
-  ROS_INFO_STREAM("Current Bebop Velcoities: XYZ: "
+  ROS_INFO_STREAM("[VCTL] Current Bebop Velcoities: XYZ: "
                   << beb_vx_m_ << " "
                   << beb_vy_m_ << " "
                   << beb_vz_m_ << " ");
@@ -132,9 +133,9 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   model_velx_->Simulate(param_time_delay_, 0.05, beb_vx_m_, beb_pitch_rad_);
   model_vely_->Simulate(param_time_delay_, 0.05, beb_vy_m_, beb_roll_rad_);
 
-  ROS_INFO_STREAM("Simulated Bebop Velocities: XY: "
+  ROS_INFO_STREAM("[VCTL] Simulated Bebop Velocities: XY: "
                   << model_velx_->GetVel() << " " << model_vely_->GetVel());
-  ROS_WARN_STREAM("Last predicted bebop vels: XY:"
+  ROS_WARN_STREAM("[VCTL] Last predicted bebop vels: XY:"
                   << beb_vx_pred_m_ << " " << beb_vy_pred_m_);
 
   beb_vx_pred_m_ = beb_vx_m_;
@@ -143,6 +144,7 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
 
 void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &twist_ptr_)
 {
+  setpoint_recv_time_ = ros::Time::now();
   setpoint_cmd_vel = *twist_ptr_;
 }
 
@@ -243,8 +245,7 @@ void BebopVelCtrl::Spin()
         ROS_WARN_THROTTLE(1, "[VCTL] Bebop state feedback is older than 1 second! Resetting.");
         do_reset = true;
       }
-
-      if ((ros::Time::now() - pid_last_time_).toSec() > (5.0 / param_update_freq_))
+      else if ((ros::Time::now() - setpoint_recv_time_).toSec() > (5.0 / param_update_freq_))
       {
         ROS_WARN_THROTTLE(1, "[VCTL] Input ctrl_cmd_vel is old or slow! Resetting.");
         do_reset = true;

@@ -121,6 +121,7 @@ protected:
   double beb_vyaw_rad_;
 
   // PID Controllers
+  ros::Time setpoint_recv_time_;
   ros::Time pid_last_time_;
   boost::shared_ptr<control_toolbox::Pid> pid_vx_;
   boost::shared_ptr<control_toolbox::Pid> pid_vy_;
