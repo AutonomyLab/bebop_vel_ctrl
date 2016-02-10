@@ -7,6 +7,6 @@
   <!-- teleop node -->
   <remap from="/bebop/vservo/cmd_vel" to="/vservo/cmd_vel"/>
   <include file="$(find bebop_tools)/launch/joy_teleop.launch">
-    <arg name="teleop_config" value="$(find bebop_tools)/config/log710_metric.yaml"/>
+    <arg name="teleop_config" value="$(find bebop_vel_ctrl)/config/log710_metric.yaml"/>
   </include>
 </launch>
