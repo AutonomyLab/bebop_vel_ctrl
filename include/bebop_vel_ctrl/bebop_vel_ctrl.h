@@ -14,6 +14,7 @@
 #include <bebop_msgs/Ardrone3PilotingStateAttitudeChanged.h>
 #include <bebop_msgs/Ardrone3PilotingStateSpeedChanged.h>
 
+#include "bebop_vel_ctrl/Debug.h"
 #include "bebop_vel_ctrl/bebop_vel_model.h"
 
 namespace bebop_vel_ctrl
@@ -76,6 +77,7 @@ protected:
 
   ros::Subscriber sub_setpoint_cmd_vel_;
   ros::Publisher pub_ctrl_cmd_vel_;
+  ros::Publisher pub_debug_;
 
   geometry_msgs::Twist setpoint_cmd_vel;
   geometry_msgs::Twist ctrl_twist_;
@@ -86,9 +88,9 @@ protected:
 
   // Bebop internal params (driver reads/sets them)
   bool beb_param_recv;
-  double beb_maxtilt_rad;
-  double beb_max_speed_vert_m;
-  double beb_max_speed_rot_rad;
+  double beb_maxtilt_rad_;
+  double beb_max_speed_vert_m_;
+  double beb_max_speed_rot_rad_;
 
   // Params
   /* If any of these two params are set, the corresponding
@@ -111,7 +113,6 @@ protected:
   double beb_roll_rad_;
   double beb_pitch_rad_;
   double beb_yaw_rad_;
-  double beb_yaw_ref_rad_;
   double beb_alt_m_;
 
   // Bebop Velocities
@@ -128,6 +129,8 @@ protected:
   boost::shared_ptr<control_toolbox::Pid> pid_yaw_;
   boost::shared_ptr<control_toolbox::Pid> pid_alt_;
 
+  bebop_vel_ctrl::Debug msg_debug_;
+
   // Internal
   double beb_vx_pred_m_;
   double beb_vy_pred_m_;
@@ -139,7 +142,7 @@ protected:
   // PID control happens here
   void SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr& twist_ptr_);
 
-  void Update();
+  bool Update();
 
 public:
   BebopVelCtrl(ros::NodeHandle& nh);

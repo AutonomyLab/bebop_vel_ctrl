@@ -4,10 +4,12 @@
   <arg name="output" default="screen" />
   <arg name="input_topic" default="vservo/cmd_vel" />
   <arg name="output_topic" default="vel_ctrl/cmd_vel" />
+  <arg name="debug_topic" default="vel_ctrl/debug" />
 
   <node name="bebop_vel_ctrl_node" type="bebop_vel_ctrl_node" pkg="bebop_vel_ctrl" output="$(arg output)" >
     <remap from="setpoint/cmd_vel" to="$(arg input_topic)" />
     <remap from="cmd_vel" to="$(arg output_topic)" />
+    <remap from="debug" to="$(arg debug_topic)" />
     <rosparam command="load" file="$(arg param_file)" />
   </node>
 </launch>

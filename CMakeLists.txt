@@ -2,17 +2,30 @@ cmake_minimum_required(VERSION 2.8.3)
 project(bebop_vel_ctrl)
 
 find_package(catkin REQUIRED COMPONENTS
+  std_msgs
   bebop_msgs
   control_toolbox
   roscpp
   geometry_msgs
   angles
   message_filters
+  message_generation
 )
 
 # find_package(Boost REQUIRED COMPONENTS system)
 
 # catkin_python_setup()
+
+add_message_files(
+  FILES
+  Debug.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -37,7 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES bebop_vel_model
-   CATKIN_DEPENDS bebop_msgs control_toolbox roscpp geometry_msgs angles
+   CATKIN_DEPENDS bebop_msgs control_toolbox roscpp geometry_msgs angles message_runtime std_msgs
 #  DEPENDS system_lib
 )
 

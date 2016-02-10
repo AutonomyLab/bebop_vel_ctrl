@@ -17,6 +17,7 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
     nh_pid_alt_(nh_, "pid_alt"),
     sub_setpoint_cmd_vel_(nh_.subscribe("setpoint/cmd_vel", 1, &BebopVelCtrl::SetpointCmdvelCallback, this)),
     pub_ctrl_cmd_vel_(nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1)),
+    pub_debug_(nh_.advertise<bebop_vel_ctrl::Debug>("debug", 1)),
     sub_bebop_alt_(nh_, "bebop/states/ARDrone3/PilotingState/AltitudeChanged", 1),
     sub_bebop_att_(nh_, "bebop/states/ARDrone3/PilotingState/AttitudeChanged", 1),
     sub_bebop_speed_(nh_, "bebop/states/ARDrone3/PilotingState/SpeedChanged", 1),
@@ -84,23 +85,22 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   if (!beb_param_recv)
   {
     // This is sketchy, I need to find a way to get these params
-    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/PilotingSettingsMaxTiltCurrent", beb_maxtilt_rad))
+    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/PilotingSettingsMaxTiltCurrent", beb_maxtilt_rad_))
     {
       return;
     }
-    beb_maxtilt_rad = angles::from_degrees(beb_maxtilt_rad);
-    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/SpeedSettingsMaxVerticalSpeedCurrent", beb_max_speed_vert_m))
+    beb_maxtilt_rad_ = angles::from_degrees(beb_maxtilt_rad_);
+    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/SpeedSettingsMaxVerticalSpeedCurrent", beb_max_speed_vert_m_))
     {
       return;
     }
-    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/SpeedSettingsMaxRotationSpeedCurrent", beb_max_speed_rot_rad))
+    if (!util::GetParam(nh_, "/bebop/bebop_nodelet/SpeedSettingsMaxRotationSpeedCurrent", beb_max_speed_rot_rad_))
     {
       return;
     }
-    beb_max_speed_rot_rad = angles::from_degrees(beb_max_speed_rot_rad);
+    beb_max_speed_rot_rad_ = angles::from_degrees(beb_max_speed_rot_rad_);
 
     // use first yaw as ref point
-    beb_yaw_ref_rad_ = -att_ptr->yaw;
     beb_param_recv = true;
   }
 
@@ -116,12 +116,12 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
 
   // Bebop Speed is in world coordinates (ESD coords (we convert it to ENU))
   // yaw is already converted (with respect to magnetic north)
-  const double vx_enu = speed_ptr->speedX;
-  const double vy_enu = -speed_ptr->speedY;
-  const double vz_enu = -speed_ptr->speedZ;
+  const double beb_vx_enu = speed_ptr->speedX;
+  const double beb_vy_enu = -speed_ptr->speedY;
+  const double beb_vz_enu = -speed_ptr->speedZ;
 
-  beb_vx_m_ = cos(beb_yaw_rad_) * vx_enu + sin(beb_yaw_rad_) * vy_enu;
-  beb_vy_m_ = -sin(beb_yaw_rad_) * vx_enu + cos(beb_yaw_rad_) * vy_enu;
+  beb_vx_m_ = cos(beb_yaw_rad_) * beb_vx_enu + sin(beb_yaw_rad_) * beb_vy_enu;
+  beb_vy_m_ = -sin(beb_yaw_rad_) * beb_vx_enu + cos(beb_yaw_rad_) * beb_vy_enu;
 
   ROS_DEBUG_STREAM("[VCTL] Current Bebop Velcoities: XYZ: "
                   << beb_vx_m_ << " "
@@ -133,6 +133,8 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   model_velx_->Simulate(param_time_delay_, 0.05, beb_vx_m_, beb_pitch_rad_);
   model_vely_->Simulate(param_time_delay_, 0.05, beb_vy_m_, beb_roll_rad_);
 
+
+  // TODO: Revise this
   ROS_DEBUG_STREAM("[VCTL] Simulated Bebop Velocities: XY: "
                   << model_velx_->GetVel() << " " << model_vely_->GetVel());
   ROS_DEBUG_STREAM("[VCTL] Last predicted bebop vels: XY:"
@@ -140,26 +142,55 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
 
   beb_vx_pred_m_ = beb_vx_m_;
   beb_vy_pred_m_ = beb_vy_m_;
+
+  // Debug message update
+  msg_debug_.beb_sync_time = bebop_recv_time_;
+  msg_debug_.beb_sync_lag = ros::Duration(0.0);
+  msg_debug_.beb_maxtilt_rad = beb_maxtilt_rad_;
+  msg_debug_.beb_max_speed_vert_m = beb_max_speed_vert_m_;
+  msg_debug_.beb_max_speed_rot_rad = beb_max_speed_rot_rad_;
+  msg_debug_.beb_roll_rad = beb_roll_rad_;
+  msg_debug_.beb_pitch_rad = beb_pitch_rad_;
+  msg_debug_.beb_yaw_rad = beb_yaw_rad_;
+  msg_debug_.beb_alt_m = beb_alt_m_;
+  msg_debug_.beb_vx_enu = beb_vx_enu;
+  msg_debug_.beb_vy_enu = beb_vy_enu;
+  msg_debug_.beb_vz_enu = beb_vz_enu;
+  msg_debug_.beb_vx_m = beb_vx_m_;
+  msg_debug_.beb_vy_m = beb_vy_m_;
+  msg_debug_.beb_vyaw_rad = beb_vyaw_rad_;
+  msg_debug_.beb_vx_pred_delay_m = model_velx_->GetVel();
+  msg_debug_.beb_vy_pred_delay_m = model_vely_->GetVel();
 }
 
 void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &twist_ptr_)
 {
   setpoint_recv_time_ = ros::Time::now();
   setpoint_cmd_vel = *twist_ptr_;
+
+  // Update debug msg
+  msg_debug_.setpoint_time = setpoint_recv_time_;
+  msg_debug_.setpoint_lag = ros::Duration(0.0);
+  msg_debug_.setpoint = setpoint_cmd_vel;
 }
 
 // tracks the setpoint
-void BebopVelCtrl::Update()
+bool BebopVelCtrl::Update()
 {
   if (!beb_param_recv)
   {
     ROS_WARN_THROTTLE(1, "[VCTL] Bebop params are not set!");
-    return;
+    return false;
   }
 
   // This condition is already checked by the main loop for safety
   const ros::Time& t_now = ros::Time::now();
-  if ((t_now - bebop_recv_time_).toSec() > 1.0) return;
+  const ros::Duration& feedback_lag = t_now - bebop_recv_time_;
+  const ros::Duration& setpoint_lag = t_now - setpoint_recv_time_;
+  msg_debug_.beb_sync_lag = feedback_lag;
+  msg_debug_.setpoint_lag = setpoint_lag;
+
+  if (feedback_lag.toSec() > 1.0) return false;
 
   // CLAMP Input Setpoints
   CLAMP(setpoint_cmd_vel.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
@@ -169,6 +200,7 @@ void BebopVelCtrl::Update()
 
   // PID Control Loop
   const ros::Duration& dt = t_now - pid_last_time_;
+
   const double pitch_ref = pid_vx_->computeCommand(setpoint_cmd_vel.linear.x - model_velx_->GetVel(), dt);
   const double roll_ref  = pid_vy_->computeCommand(setpoint_cmd_vel.linear.y - model_vely_->GetVel(), dt);
 
@@ -184,29 +216,32 @@ void BebopVelCtrl::Update()
 
   // Convert PID output  into normalized cmd_vel (-1 -> 1)
   util::ResetCmdVel(ctrl_twist_);
-  ctrl_twist_.linear.x =  pitch_ref / beb_maxtilt_rad;
-  ctrl_twist_.linear.y =  roll_ref / beb_maxtilt_rad;
-  ctrl_twist_.angular.z = vyaw_ref / beb_max_speed_rot_rad;
-  ctrl_twist_.linear.z = vz_ref / beb_max_speed_vert_m;
+  ctrl_twist_.linear.x =  pitch_ref / beb_maxtilt_rad_;
+  ctrl_twist_.linear.y =  roll_ref / beb_maxtilt_rad_;
+  ctrl_twist_.angular.z = vyaw_ref / beb_max_speed_rot_rad_;
+  ctrl_twist_.linear.z = vz_ref / beb_max_speed_vert_m_;
 
   // CLAMP and filter output
   CLAMP(ctrl_twist_.linear.x, -1.0, 1.0);
   CLAMP(ctrl_twist_.linear.y, -1.0, 1.0);
   CLAMP(ctrl_twist_.linear.z, -1.0, 1.0);
   CLAMP(ctrl_twist_.angular.z, -1.0, 1.0);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.01);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.01);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.z, 0.01);
-  FILTER_SMALL_VALS(ctrl_twist_.angular.z, 0.01);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.05);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.05);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.z, 0.05);
+  FILTER_SMALL_VALS(ctrl_twist_.angular.z, 0.05);
 
   // Simulate Bebop's velocity given the reference tilt to update (predict) feedback
   // this to compensate for low frequency velocity feedback
+  // We start from the current estimate of the model and forward it in time for dt seconds,
+  // so next time this function is called, the updated feedback is ready to be used
+  // When the feedback comes from Bebop, it will reset the model
   // We again convert from normalized values to angles to take into effect any clamp/filtering effects
-  model_velx_->Reset(model_velx_->GetVel(), CLAMP(ctrl_twist_.linear.x * beb_maxtilt_rad, -beb_maxtilt_rad, beb_maxtilt_rad));
-  model_velx_->Simulate(dt.toSec());
+  model_velx_->Reset(model_velx_->GetVel(), CLAMP(ctrl_twist_.linear.x * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
+  model_velx_->Simulate(dt.toSec(), 0.01);
 
-  model_vely_->Reset(model_vely_->GetVel(), CLAMP(ctrl_twist_.linear.y * beb_maxtilt_rad, -beb_maxtilt_rad, beb_maxtilt_rad));
-  model_vely_->Simulate(dt.toSec());
+  model_vely_->Reset(model_vely_->GetVel(), CLAMP(ctrl_twist_.linear.y * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
+  model_vely_->Simulate(dt.toSec(), 0.01);
 
   pid_last_time_ = ros::Time::now();
 
@@ -216,6 +251,12 @@ void BebopVelCtrl::Update()
                    " left: " << ctrl_twist_.linear.y <<
                    " up: " << ctrl_twist_.linear.z <<
                    " cw: " << ctrl_twist_.angular.z);
+
+  // Update debug message
+  msg_debug_.setpoint_filt = setpoint_cmd_vel;
+  msg_debug_.beb_vx_pred_m = model_velx_->GetVel();
+  msg_debug_.beb_vy_pred_m = model_vely_->GetVel();
+  return true;
 }
 
 void BebopVelCtrl::Reset()
@@ -252,9 +293,14 @@ void BebopVelCtrl::Spin()
       }
 
       if (do_reset)
+      {
         Reset();
+      }
       else
-        Update();
+      {
+        msg_debug_.control_active = Update();
+        pub_debug_.publish(msg_debug_);
+      }
 
       ros::spinOnce();
       if (!loop_rate.sleep())
