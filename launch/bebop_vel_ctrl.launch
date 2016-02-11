@@ -7,6 +7,7 @@
   <arg name="debug_topic" default="vel_ctrl/debug" />
 
   <arg name="plotxy" default="false" />
+  <arg name="plotz" default="false" />
   <arg name="plotyaw" default="false" />
 
   <node name="bebop_vel_ctrl_node" type="bebop_vel_ctrl_node" pkg="bebop_vel_ctrl" output="$(arg output)" >
@@ -25,6 +26,11 @@
   '
   <group if="$(arg plotyaw)">
     <node name="rqt_plot_yaw" type="rqt_plot" pkg="rqt_plot" output="log"
-      args="--clear-config /bebop/cmd_vel/angular/z /vel_ctrl/debug/beb_yaw_rad /vel_ctrl/debug/setpoint/angular/z" />
+      args="--clear-config /bebop/cmd_vel/angular/z /vel_ctrl/debug/beb_yaw_rad /vel_ctrl/debug/setpoint_filt/angular/z" />
+  </group>
+
+  <group if="$(arg plotz)">
+    <node name="rqt_plot_z" type="rqt_plot" pkg="rqt_plot" output="log"
+      args="--clear-config /bebop/cmd_vel/linear/z /vel_ctrl/debug/beb_alt_m /vel_ctrl/debug/setpoint_filt/linear/z" />
   </group>
 </launch>

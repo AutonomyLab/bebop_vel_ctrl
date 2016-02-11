@@ -28,7 +28,7 @@ pid_yaw:
   d: 0
   i_clamp: 0
 pid_alt:
-  p: 0.5
+  p: 0.6
   i: 0
   d: 0
   i_clamp: 0
