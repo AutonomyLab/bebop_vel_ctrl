@@ -31,6 +31,6 @@
 
   <group if="$(arg plotz)">
     <node name="rqt_plot_z" type="rqt_plot" pkg="rqt_plot" output="log"
-      args="--clear-config /bebop/cmd_vel/linear/z /vel_ctrl/debug/beb_alt_m /vel_ctrl/debug/setpoint_filt/linear/z" />
+      args="--clear-config /bebop/cmd_vel/linear/z /vel_ctrl/debug/beb_alt_m /vel_ctrl/debug/beb_vz_enu /vel_ctrl/debug/setpoint_filt/linear/z" />
   </group>
 </launch>
