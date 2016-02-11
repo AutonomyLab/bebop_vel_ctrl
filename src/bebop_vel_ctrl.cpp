@@ -40,6 +40,10 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   util::GetParam(nh_priv_, "model_cy", param_model_cy_, -0.584975281133000);
   util::GetParam(nh_priv_, "update_freq", param_update_freq_, 30.0);
 
+  util::GetParam(nh_priv_, "max_linear_vel", param_max_linear_vel_, 2.0);
+  util::GetParam(nh_priv_, "min_alt", param_min_alt_, 0.5);
+  util::GetParam(nh_priv_, "max_alt", param_max_alt_, 2.5);
+
   util::GetParam(nh_priv_, "feedback_pred_factor", param_feedback_pred_factor_, 0.2);
   util::GetParam(nh_priv_, "delay_compensation_factor", param_delay_compensation_factor_, 0.7);
 
@@ -204,8 +208,29 @@ bool BebopVelCtrl::Update()
   // CLAMP Input Setpoints
   CLAMP(setpoint_cmd_vel.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
   CLAMP(setpoint_cmd_vel.linear.y, -param_max_linear_vel_, param_max_linear_vel_);
-  CLAMP(setpoint_cmd_vel.linear.z, -param_max_vertical_vel_, param_max_vertical_vel_);
-  CLAMP(setpoint_cmd_vel.angular.z, -param_max_angular_vel_, param_max_angular_vel_);
+
+
+  /*
+   * for z and yaw:
+   * if abs_control is enabled, use user provided limits. Otherwise use Bebop's params.
+   * */
+  if (param_abs_alt_ctrl_)
+  {
+    CLAMP(setpoint_cmd_vel.linear.z, param_min_alt_, param_max_alt_);
+  }
+  else
+  {
+    CLAMP(setpoint_cmd_vel.linear.z, -beb_max_speed_vert_m_, beb_max_speed_vert_m_);
+  }
+
+  if (param_abs_yaw_ctrl_)
+  {
+    setpoint_cmd_vel.angular.z = angles::normalize_angle(setpoint_cmd_vel.angular.z);
+  }
+  else
+  {
+    CLAMP(setpoint_cmd_vel.angular.z, -beb_max_speed_rot_rad_, beb_max_speed_rot_rad_);
+  }
 
   // PID Control Loop
   ros::Duration dt = t_now - pid_last_time_;

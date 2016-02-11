@@ -1,9 +1,12 @@
-abs_yaw_ctrl: false
+abs_yaw_ctrl: true
 abs_alt_ctrl: false
 model_delay_s: 0.262137
 model_cx: -0.576335778073963
 model_cy: -0.584975281133000
 update_freq: 30.0
+max_linear_vel: 2.0
+min_alt: 0.5
+max_alt: 2.5
 
 # talk to Mani about these two
 feedback_pred_factor: 0.2
@@ -20,7 +23,7 @@ pid_lateral:
   d: 0.0
   i_clamp: 0.01
 pid_yaw:
-  p: 0.5
+  p: 0.9
   i: 0
   d: 0
   i_clamp: 0

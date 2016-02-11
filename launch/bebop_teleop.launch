@@ -1,10 +1,12 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="plotxy" default="false" />
+  <arg name="plotyaw" default="false" />
 
   <include file="$(find bebop_vel_ctrl)/launch/bebop_vel_ctrl.launch">
     <arg name="output_topic" value="bebop/cmd_vel"/>
     <arg name="plotxy" value="$(arg plotxy)" />
+    <arg name="plotyaw" value="$(arg plotyaw)" />
   </include>
 
   <!-- teleop node -->

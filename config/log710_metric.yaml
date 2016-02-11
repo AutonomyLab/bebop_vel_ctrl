@@ -10,12 +10,12 @@ teleop:
       -
         axis: 3  # Right thumb stick (up/down)
         target: linear.x
-        scale: 0.5
+        scale: 1.0
         offset: 0.0
       -
         axis: 2  # Right thumb stick (left/right)
         target: linear.y
-        scale: 0.5
+        scale: 1.0
         offset: 0.0
       -
         axis: 1  # Left thumb stick (up/down)
@@ -25,8 +25,8 @@ teleop:
       -
         axis: 0  # Left thumb stick (left/right)
         target: angular.z
-        scale: 3.0
-        offset: 0.0
+        scale: 3.14
+        offset: -1.57
   camera:
     type: topic
     message_type: "geometry_msgs/Twist"

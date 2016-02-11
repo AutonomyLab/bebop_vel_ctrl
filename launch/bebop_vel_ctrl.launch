@@ -7,6 +7,7 @@
   <arg name="debug_topic" default="vel_ctrl/debug" />
 
   <arg name="plotxy" default="false" />
+  <arg name="plotyaw" default="false" />
 
   <node name="bebop_vel_ctrl_node" type="bebop_vel_ctrl_node" pkg="bebop_vel_ctrl" output="$(arg output)" >
     <remap from="setpoint/cmd_vel" to="$(arg input_topic)" />
@@ -16,9 +17,14 @@
   </node>
 
   <group if="$(arg plotxy)">
-    <node name="rqt_plot_x" type="rqt_plot" pkg="rqt_plot" output="screen"
+    <node name="rqt_plot_x" type="rqt_plot" pkg="rqt_plot" output="log"
       args="--clear-config /bebop/cmd_vel/linear/x /vel_ctrl/debug/beb_vx_pred_m /vel_ctrl/debug/beb_vx_pred_delay_m /vel_ctrl/debug/beb_vx_m /vel_ctrl/debug/setpoint/linear/x" />
-    <node name="rqt_plot_y" type="rqt_plot" pkg="rqt_plot" output="screen"
+    <node name="rqt_plot_y" type="rqt_plot" pkg="rqt_plot" output="log"
       args="--clear-config /bebop/cmd_vel/linear/y /vel_ctrl/debug/beb_vy_pred_m /vel_ctrl/debug/beb_vy_pred_delay_m /vel_ctrl/debug/beb_vy_m /vel_ctrl/debug/setpoint/linear/y" />
-   </group>
+  </group>
+  '
+  <group if="$(arg plotyaw)">
+    <node name="rqt_plot_yaw" type="rqt_plot" pkg="rqt_plot" output="log"
+      args="--clear-config /bebop/cmd_vel/angular/z /vel_ctrl/debug/beb_yaw_rad /vel_ctrl/debug/setpoint/angular/z" />
+  </group>
 </launch>

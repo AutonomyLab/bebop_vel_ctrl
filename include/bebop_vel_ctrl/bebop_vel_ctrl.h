@@ -104,9 +104,10 @@ protected:
   double param_model_cx_;
   double param_model_cy_;
   double param_update_freq_;
+
   double param_max_linear_vel_;  // m/s
-  double param_max_angular_vel_; // rad/s
-  double param_max_vertical_vel_; // m/s
+  double param_min_alt_;
+  double param_max_alt_;
   double param_feedback_pred_factor_;
   double param_delay_compensation_factor_;
 
