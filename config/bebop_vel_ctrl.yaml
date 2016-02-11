@@ -4,16 +4,21 @@ model_delay_s: 0.262137
 model_cx: -0.576335778073963
 model_cy: -0.584975281133000
 update_freq: 30.0
+
+# talk to Mani about these two
+feedback_pred_factor: 0.2
+delay_compensation_factor: 0.7
+
 pid_forward:
-  p: 0.15
-  i: 0.4
+  p: 0.2
+  i: 0.5
   d: 0.0
-  i_clamp: 0.02
+  i_clamp: 0.01
 pid_lateral:
-  p: 0.15
-  i: 0.4
+  p: 0.2
+  i: 0.5
   d: 0.0
-  i_clamp: 0.02
+  i_clamp: 0.01
 pid_yaw:
   p: 0.5
   i: 0

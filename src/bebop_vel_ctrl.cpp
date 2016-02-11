@@ -40,6 +40,12 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   util::GetParam(nh_priv_, "model_cy", param_model_cy_, -0.584975281133000);
   util::GetParam(nh_priv_, "update_freq", param_update_freq_, 30.0);
 
+  util::GetParam(nh_priv_, "feedback_pred_factor", param_feedback_pred_factor_, 0.2);
+  util::GetParam(nh_priv_, "delay_compensation_factor", param_delay_compensation_factor_, 0.7);
+
+  ROS_ASSERT(param_feedback_pred_factor_ > 0.0 && param_feedback_pred_factor_ <= 1.0);
+  ROS_ASSERT(param_delay_compensation_factor_ > 0.0 && param_delay_compensation_factor_ <= 1.0);
+
   // We initialize PIDs through its nodehandle constructor,
   // The following will set some default values for the parameters if the user
   // does not specify them. This plays nice with Dynamic Reconfigure
@@ -130,9 +136,12 @@ void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAlti
   beb_vyaw_rad_ = 0.0; // this is unknown
 
 
-  model_velx_->Simulate(param_time_delay_, 0.05, beb_vx_m_, beb_pitch_rad_);
-  model_vely_->Simulate(param_time_delay_, 0.05, beb_vy_m_, beb_roll_rad_);
+  model_velx_->Simulate(param_time_delay_, 0.005, beb_vx_m_, beb_pitch_rad_);
+  model_vely_->Simulate(param_time_delay_, 0.005, beb_vy_m_, beb_roll_rad_);
 
+  // Apply delay compensation factor (captures overshoot error in descritization)
+  model_velx_->Reset(model_velx_->GetVel() * param_delay_compensation_factor_, model_velx_->GetTilt());
+  model_vely_->Reset(model_vely_->GetVel() * param_delay_compensation_factor_, model_vely_->GetTilt());
 
   // TODO: Revise this
   ROS_DEBUG_STREAM("[VCTL] Simulated Bebop Velocities: XY: "
@@ -199,7 +208,17 @@ bool BebopVelCtrl::Update()
   CLAMP(setpoint_cmd_vel.angular.z, -param_max_angular_vel_, param_max_angular_vel_);
 
   // PID Control Loop
-  const ros::Duration& dt = t_now - pid_last_time_;
+  ros::Duration dt = t_now - pid_last_time_;
+  if (dt.toSec() > (2.0 / param_update_freq_))
+  {
+    ROS_WARN("[VCTL] Last pid update time is more than 2/update_freq. Resetting PIDs");
+    pid_last_time_ = ros::Time::now();
+    dt = ros::Duration(0.0);
+    pid_vx_->reset();
+    pid_vy_->reset();
+    pid_alt_->reset();
+    pid_yaw_->reset();
+  }
 
   const double pitch_ref = pid_vx_->computeCommand(setpoint_cmd_vel.linear.x - model_velx_->GetVel(), dt);
   const double roll_ref  = pid_vy_->computeCommand(setpoint_cmd_vel.linear.y - model_vely_->GetVel(), dt);
@@ -226,25 +245,26 @@ bool BebopVelCtrl::Update()
   CLAMP(ctrl_twist_.linear.y, -1.0, 1.0);
   CLAMP(ctrl_twist_.linear.z, -1.0, 1.0);
   CLAMP(ctrl_twist_.angular.z, -1.0, 1.0);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.05);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.05);
-  FILTER_SMALL_VALS(ctrl_twist_.linear.z, 0.05);
-  FILTER_SMALL_VALS(ctrl_twist_.angular.z, 0.05);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.01);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.01);
+  FILTER_SMALL_VALS(ctrl_twist_.linear.z, 0.01);
+  FILTER_SMALL_VALS(ctrl_twist_.angular.z, 0.01);
 
   // Simulate Bebop's velocity given the reference tilt to update (predict) feedback
   // this to compensate for low frequency velocity feedback
-  // We start from the current estimate of the model and forward it in time for dt seconds,
+  // We start from the current estimate of the model anted forward it in time for dt seconds,
   // so next time this function is called, the updated feedback is ready to be used
   // When the feedback comes from Bebop, it will reset the model
   // We again convert from normalized values to angles to take into effect any clamp/filtering effects
-  model_velx_->Reset(model_velx_->GetVel(), CLAMP(ctrl_twist_.linear.x * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
-  model_velx_->Simulate(dt.toSec(), 0.01);
+  // Also apply the feedback prediction factor which indicates to what extent the desired tilt angle
+  // will be acheived during the course of dt
+  model_velx_->Reset(model_velx_->GetVel(), param_feedback_pred_factor_ * CLAMP(ctrl_twist_.linear.x * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
+  model_velx_->Simulate(dt.toSec(), 0.005);
 
-  model_vely_->Reset(model_vely_->GetVel(), CLAMP(ctrl_twist_.linear.y * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
-  model_vely_->Simulate(dt.toSec(), 0.01);
+  model_vely_->Reset(model_vely_->GetVel(), param_feedback_pred_factor_* CLAMP(ctrl_twist_.linear.y * beb_maxtilt_rad_, -beb_maxtilt_rad_, beb_maxtilt_rad_));
+  model_vely_->Simulate(dt.toSec(), 0.005);
 
   pid_last_time_ = ros::Time::now();
-
   pub_ctrl_cmd_vel_.publish(ctrl_twist_);
 
   ROS_ERROR_STREAM("[VCTL] CMD_VEL for: " << ctrl_twist_.linear.x <<
@@ -281,6 +301,7 @@ void BebopVelCtrl::Spin()
     try
     {
       bool do_reset = false;
+      bool ctrl_success = false;
       if ((ros::Time::now() - bebop_recv_time_).toSec() > 1.0)
       {
         ROS_WARN_THROTTLE(10.0, "[VCTL] Bebop state feedback is older than 1 second! Resetting.");
@@ -298,9 +319,13 @@ void BebopVelCtrl::Spin()
       }
       else
       {
-        msg_debug_.control_active = Update();
-        pub_debug_.publish(msg_debug_);
+        ctrl_success = Update();
       }
+
+      msg_debug_.control_active = ctrl_success;
+      msg_debug_.header.stamp = ros::Time::now();
+      pub_debug_.publish(msg_debug_);
+
 
       ros::spinOnce();
       if (!loop_rate.sleep())

@@ -107,6 +107,8 @@ protected:
   double param_max_linear_vel_;  // m/s
   double param_max_angular_vel_; // rad/s
   double param_max_vertical_vel_; // m/s
+  double param_feedback_pred_factor_;
+  double param_delay_compensation_factor_;
 
   // Bebop Attitude States
   ros::Time bebop_recv_time_;
