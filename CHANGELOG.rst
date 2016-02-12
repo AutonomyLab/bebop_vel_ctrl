@@ -2,8 +2,8 @@
 Changelog for package bebop_vel_ctrl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2016-02-12)
+------------------
 * Change default value of abs_yaw to false, communicate that to the user
 * Less verbose output
 * Set max velocity for xy to 2.0 m/s
