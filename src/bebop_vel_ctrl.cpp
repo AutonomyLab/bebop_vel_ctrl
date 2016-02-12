@@ -84,6 +84,9 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   model_vely_ = boost::make_shared<bebop_vel_ctrl::BebopVelocityTiltModel>(param_model_cy_, -GRAV_CST);
 
   subsync_bebop_.registerCallback(boost::bind(&BebopVelCtrl::BebopSyncCallback, this, _1, _2, _3));
+
+  ROS_ERROR_STREAM("[VCTL] Abs Yaw mode: " << (param_abs_yaw_ctrl_ ? "Enabled" : "Disabled"));
+  ROS_ERROR_STREAM("[VCTL] Abs Alt mode: " << (param_abs_alt_ctrl_ ? "Enabled" : "Disabled"));
 }
 
 void BebopVelCtrl::BebopSyncCallback(const bebop_msgs::Ardrone3PilotingStateAltitudeChangedConstPtr& alt_ptr,

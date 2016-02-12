@@ -1,4 +1,4 @@
-abs_yaw_ctrl: true
+abs_yaw_ctrl: false
 abs_alt_ctrl: false
 model_delay_s: 0.262137
 model_cx: -0.576335778073963
