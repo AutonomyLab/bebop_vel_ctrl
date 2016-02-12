@@ -292,7 +292,7 @@ bool BebopVelCtrl::Update()
   pid_last_time_ = ros::Time::now();
   pub_ctrl_cmd_vel_.publish(ctrl_twist_);
 
-  ROS_ERROR_STREAM("[VCTL] CMD_VEL for: " << ctrl_twist_.linear.x <<
+  ROS_DEBUG_STREAM("[VCTL] CMD_VEL for: " << ctrl_twist_.linear.x <<
                    " left: " << ctrl_twist_.linear.y <<
                    " up: " << ctrl_twist_.linear.z <<
                    " cw: " << ctrl_twist_.angular.z);
