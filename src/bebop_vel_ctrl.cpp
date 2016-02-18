@@ -47,6 +47,13 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   util::GetParam(nh_priv_, "feedback_pred_factor", param_feedback_pred_factor_, 0.2);
   util::GetParam(nh_priv_, "delay_compensation_factor", param_delay_compensation_factor_, 0.7);
 
+  util::GetParam(nh_priv_, "safety_send_zero", param_safety_send_zero_, true);
+
+  if (!param_safety_send_zero_)
+  {
+    ROS_WARN("[VCTL] safety_send_zero is disabled. When input setpoint is not fast enough, this node will do nothing");
+  }
+
   ROS_ASSERT(param_feedback_pred_factor_ > 0.0 && param_feedback_pred_factor_ <= 1.0);
   ROS_ASSERT(param_delay_compensation_factor_ > 0.0 && param_delay_compensation_factor_ <= 1.0);
 
@@ -188,6 +195,7 @@ void BebopVelCtrl::SetpointCmdvelCallback(const geometry_msgs::TwistConstPtr &tw
   msg_debug_.setpoint_time = setpoint_recv_time_;
   msg_debug_.setpoint_lag = ros::Duration(0.0);
   msg_debug_.setpoint = setpoint_cmd_vel;
+
 }
 
 // tracks the setpoint
@@ -228,7 +236,7 @@ bool BebopVelCtrl::Update()
 
   if (param_abs_yaw_ctrl_)
   {
-    setpoint_cmd_vel.angular.z = angles::normalize_angle(setpoint_cmd_vel.angular.z);
+    setpoint_cmd_vel.angular.z = setpoint_cmd_vel.angular.z;
   }
   else
   {
@@ -239,7 +247,6 @@ bool BebopVelCtrl::Update()
   ros::Duration dt = t_now - pid_last_time_;
   if (dt.toSec() > (2.0 / param_update_freq_))
   {
-    ROS_WARN("[VCTL] Last pid update time is more than 2/update_freq. Resetting PIDs");
     pid_last_time_ = ros::Time::now();
     dt = ros::Duration(0.0);
     pid_vx_->reset();
@@ -253,7 +260,8 @@ bool BebopVelCtrl::Update()
 
   // If abs yaw ctrl is set, setpoint.angular.z is an angle
   const double vyaw_ref = (param_abs_yaw_ctrl_) ?
-        pid_yaw_->computeCommand(angles::normalize_angle(setpoint_cmd_vel.angular.z - beb_yaw_rad_), dt) :
+        //pid_yaw_->computeCommand(angles::normalize_angle(setpoint_cmd_vel.angular.z - beb_yaw_rad_), dt) :
+        pid_yaw_->computeCommand(angles::shortest_angular_distance(beb_yaw_rad_, setpoint_cmd_vel.angular.z), dt) :
         setpoint_cmd_vel.angular.z;
 
   // If abs alt ctrl is set, setpoint.linear.z is an altitude
@@ -311,7 +319,7 @@ void BebopVelCtrl::Reset()
 {
   util::ResetCmdVel(ctrl_twist_);
   util::ResetCmdVel(setpoint_cmd_vel);
-  pub_ctrl_cmd_vel_.publish(ctrl_twist_);
+  if (param_safety_send_zero_) pub_ctrl_cmd_vel_.publish(ctrl_twist_);
 }
 
 void BebopVelCtrl::Spin()

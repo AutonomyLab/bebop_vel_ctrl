@@ -104,6 +104,7 @@ protected:
   double param_model_cx_;
   double param_model_cy_;
   double param_update_freq_;
+  bool param_safety_send_zero_;
 
   double param_max_linear_vel_;  // m/s
   double param_min_alt_;

@@ -11,6 +11,7 @@ max_alt: 2.5
 # talk to Mani about these two
 feedback_pred_factor: 0.2
 delay_compensation_factor: 0.7
+safety_send_zero: true
 
 pid_forward:
   p: 0.2
