@@ -2,6 +2,13 @@
 Changelog for package bebop_vel_ctrl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add trajectory plan executer
+* Add zero_vxy param for hovering when setpoint's vx and vy are zero
+* Add param for safety mode, change yaw control mode
+* Contributors: Mani Monajjemi
+
 1.1.0 (2016-02-12)
 ------------------
 * Change default value of abs_yaw to false, communicate that to the user
