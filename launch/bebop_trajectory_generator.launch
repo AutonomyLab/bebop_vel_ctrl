@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="plan_file" />
+  <arg name="output_topic" default="vservo/cmd_vel" />
+
+  <node name="generate_trajectory" type="generate_trajectory.py" pkg="bebop_vel_ctrl" output="screen">
+    <rosparam command="load" file="$(arg plan_file)" />
+    <remap from="cmd_vel" to="$(arg output_topic)" />
+  </node>
+</launch>

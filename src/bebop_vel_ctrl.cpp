@@ -48,6 +48,7 @@ BebopVelCtrl::BebopVelCtrl(ros::NodeHandle &nh)
   util::GetParam(nh_priv_, "delay_compensation_factor", param_delay_compensation_factor_, 0.7);
 
   util::GetParam(nh_priv_, "safety_send_zero", param_safety_send_zero_, true);
+  util::GetParam(nh_priv_, "zero_xy_hover", param_zero_xy_hover, false);
 
   if (!param_safety_send_zero_)
   {
@@ -260,8 +261,8 @@ bool BebopVelCtrl::Update()
 
   // If abs yaw ctrl is set, setpoint.angular.z is an angle
   const double vyaw_ref = (param_abs_yaw_ctrl_) ?
-        //pid_yaw_->computeCommand(angles::normalize_angle(setpoint_cmd_vel.angular.z - beb_yaw_rad_), dt) :
-        pid_yaw_->computeCommand(angles::shortest_angular_distance(beb_yaw_rad_, setpoint_cmd_vel.angular.z), dt) :
+        pid_yaw_->computeCommand(angles::normalize_angle(setpoint_cmd_vel.angular.z - beb_yaw_rad_), dt) :
+        //pid_yaw_->computeCommand(angles::shortest_angular_distance(beb_yaw_rad_, setpoint_cmd_vel.angular.z), dt) :
         setpoint_cmd_vel.angular.z;
 
   // If abs alt ctrl is set, setpoint.linear.z is an altitude
@@ -281,6 +282,7 @@ bool BebopVelCtrl::Update()
   CLAMP(ctrl_twist_.linear.y, -1.0, 1.0);
   CLAMP(ctrl_twist_.linear.z, -1.0, 1.0);
   CLAMP(ctrl_twist_.angular.z, -1.0, 1.0);
+
   FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.01);
   FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.01);
   FILTER_SMALL_VALS(ctrl_twist_.linear.z, 0.01);
@@ -301,6 +303,14 @@ bool BebopVelCtrl::Update()
   model_vely_->Simulate(dt.toSec(), 0.005);
 
   pid_last_time_ = ros::Time::now();
+
+  if (param_zero_xy_hover && (fabs(setpoint_cmd_vel.linear.x) < 1e-3) && (fabs(setpoint_cmd_vel.linear.y) < 1e-3))
+  {
+    ROS_WARN_ONCE("[VCTL] zero_xy_hover is enabled and the condition is met, sending vx=0, vy=0");
+    ctrl_twist_.linear.x = 0.0;
+    ctrl_twist_.linear.y = 0.0;
+  }
+
   pub_ctrl_cmd_vel_.publish(ctrl_twist_);
 
   ROS_DEBUG_STREAM("[VCTL] CMD_VEL for: " << ctrl_twist_.linear.x <<

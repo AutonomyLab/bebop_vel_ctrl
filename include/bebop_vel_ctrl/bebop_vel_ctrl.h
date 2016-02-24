@@ -105,6 +105,7 @@ protected:
   double param_model_cy_;
   double param_update_freq_;
   bool param_safety_send_zero_;
+  bool param_zero_xy_hover;
 
   double param_max_linear_vel_;  // m/s
   double param_min_alt_;

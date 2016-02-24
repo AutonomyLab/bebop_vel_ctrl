@@ -1,0 +1,38 @@
+# if abs_yaw_ctrl is true: theta is used over vw
+# if abs_alt_ctrl is true: alt is used over vz
+# All values are metric, angles are in radians
+abs_yaw_ctrl: false
+abs_abs_ctrl: false
+plan:
+  -
+    action: 'wait'
+    duration: 2
+  -
+    action: 'takeoff'
+    duration: 5
+  -
+    action: 'vel'
+    duration: 2
+    target:
+      vx: 1.0
+      vy: 0.0
+      vw: 0.0
+      vz: 0.0
+      theta: 0.0
+      alt: 0.0
+  -
+    action: 'stop'
+    duration: 2
+  -
+    action: 'vel'
+    duration: 2
+    target:
+      vx: -1.0
+      vy: 0.0
+      vw: 0.0
+      vz: 0.0
+      theta: 0.0
+      alt: 0.0
+  -
+    action: 'land'
+    duration: 2
