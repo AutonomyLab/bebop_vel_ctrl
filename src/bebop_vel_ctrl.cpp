@@ -218,21 +218,22 @@ bool BebopVelCtrl::Update()
   if (feedback_lag.toSec() > 1.0) return false;
 
   // CLAMP Input Setpoints
-  CLAMP(setpoint_cmd_vel.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
-  CLAMP(setpoint_cmd_vel.linear.y, -param_max_linear_vel_, param_max_linear_vel_);
+  setpoint_cmd_vel.linear.x = CLAMP(setpoint_cmd_vel.linear.x, -param_max_linear_vel_, param_max_linear_vel_);
+  setpoint_cmd_vel.linear.y = CLAMP(setpoint_cmd_vel.linear.y, -param_max_linear_vel_, param_max_linear_vel_);
 
 
   /*
    * for z and yaw:
    * if abs_control is enabled, use user provided limits. Otherwise use Bebop's params.
    * */
+
   if (param_abs_alt_ctrl_)
   {
-    CLAMP(setpoint_cmd_vel.linear.z, param_min_alt_, param_max_alt_);
+    setpoint_cmd_vel.linear.z = CLAMP(setpoint_cmd_vel.linear.z, param_min_alt_, param_max_alt_);
   }
   else
   {
-    CLAMP(setpoint_cmd_vel.linear.z, -beb_max_speed_vert_m_, beb_max_speed_vert_m_);
+    setpoint_cmd_vel.linear.z = CLAMP(setpoint_cmd_vel.linear.z, -beb_max_speed_vert_m_, beb_max_speed_vert_m_);
   }
 
   if (param_abs_yaw_ctrl_)
@@ -241,7 +242,7 @@ bool BebopVelCtrl::Update()
   }
   else
   {
-    CLAMP(setpoint_cmd_vel.angular.z, -beb_max_speed_rot_rad_, beb_max_speed_rot_rad_);
+    setpoint_cmd_vel.angular.z = CLAMP(setpoint_cmd_vel.angular.z, -beb_max_speed_rot_rad_, beb_max_speed_rot_rad_);
   }
 
   // PID Control Loop
@@ -278,10 +279,10 @@ bool BebopVelCtrl::Update()
   ctrl_twist_.linear.z = vz_ref / beb_max_speed_vert_m_;
 
   // CLAMP and filter output
-  CLAMP(ctrl_twist_.linear.x, -1.0, 1.0);
-  CLAMP(ctrl_twist_.linear.y, -1.0, 1.0);
-  CLAMP(ctrl_twist_.linear.z, -1.0, 1.0);
-  CLAMP(ctrl_twist_.angular.z, -1.0, 1.0);
+  ctrl_twist_.linear.x = CLAMP(ctrl_twist_.linear.x, -1.0, 1.0);
+  ctrl_twist_.linear.y = CLAMP(ctrl_twist_.linear.y, -1.0, 1.0);
+  ctrl_twist_.linear.z = CLAMP(ctrl_twist_.linear.z, -1.0, 1.0);
+  ctrl_twist_.angular.z = CLAMP(ctrl_twist_.angular.z, -1.0, 1.0);
 
   FILTER_SMALL_VALS(ctrl_twist_.linear.x, 0.01);
   FILTER_SMALL_VALS(ctrl_twist_.linear.y, 0.01);
@@ -309,6 +310,18 @@ bool BebopVelCtrl::Update()
     ROS_WARN_ONCE("[VCTL] zero_xy_hover is enabled and the condition is met, sending vx=0, vy=0");
     ctrl_twist_.linear.x = 0.0;
     ctrl_twist_.linear.y = 0.0;
+  }
+
+  if (beb_alt_m_ < param_min_alt_ && ctrl_twist_.linear.z < 0.0)
+  {
+    ROS_WARN_STREAM_THROTTLE(1, "[VCTL] Minimum altitude safety is triggered at the altitude of " << beb_alt_m_ << ". Going down is blocked.");
+    ctrl_twist_.linear.z = 0.0;
+  }
+
+  if (beb_alt_m_ > param_max_alt_ && ctrl_twist_.linear.z > 0.0)
+  {
+    ROS_WARN_STREAM_THROTTLE(1, "[VCTL] Maximum altitude safety is triggered at the altitude of " << beb_alt_m_ << ". Going up is blocked.");
+    ctrl_twist_.linear.z = 0.0;
   }
 
   pub_ctrl_cmd_vel_.publish(ctrl_twist_);
