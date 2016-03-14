@@ -8,9 +8,11 @@ max_linear_vel: 2.0
 min_alt: 0.5
 max_alt: 2.5
 
-# talk to Mani about these two
+# Determines how much of the predicted feedback signal can happen in 1/fps seconds
 feedback_pred_factor: 0.2
+# Compensate for integerator's over-estimation of the system response
 delay_compensation_factor: 0.7
+
 safety_send_zero: true
 zero_xy_hover: false
 
